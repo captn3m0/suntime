@@ -20,7 +20,14 @@ Crystal library for calculating sunrise and sunset times. Uses the algorithm fro
 require "suntime"
 
 # Time is optional, local time is used otherwise
-Suntime.new(lat,long, time)
+# It returns sunrise/sunset for TODAY, so if you want the next sunset, check accordingly
+s = Suntime::Suntime.new(lat,long, time)
+# Bangalore
+s = Suntime::Suntime.new(12.955800, 77.620979)
+s.sunrise
+# 2020-05-22 05:52:48.0 +05:30 Local
+s.sunset
+# 2020-05-22 18:39:43.0 +05:30 Local
 ```
 
 ## Development

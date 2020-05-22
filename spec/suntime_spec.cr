@@ -8,6 +8,7 @@ describe Suntime do
     l = Time::Location.load("America/New_York")
     t = Suntime::Suntime.new(lat, lng, Time.local(1990, 6, 25, 0, 0, 0, location: l))
 
+    # TODO: These are stupid tests, figure out how to use epsilon for float tests in Crystal
     t.day_of_year.should eq(176)
     t.approx_time.should eq(176.45638888888888)
     t.approx_time(false).should eq(176.95638888888888)
