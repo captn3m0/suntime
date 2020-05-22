@@ -1,0 +1,9 @@
+name: suntime
+version: 0.1.0
+
+authors:
+  - Nemo <me@captnemo.in>
+
+crystal: 0.34.0
+
+license: MIT
