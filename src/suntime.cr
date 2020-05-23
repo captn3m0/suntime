@@ -17,139 +17,101 @@ module Suntime
       @lat = lat
     end
 
-    def calculate_sun_time(sunrise = true)
-      t = approx_time(sunrise)
-      m = sun_mean_anomaly(t)
-      l = sun_true_longitude(m)
-      ra = sun_right_ascension(l)
-      cosH = sun_local_hour_angle(l)
-      h = calculate_h(cosH, sunrise)
-      fractional_time_to_proper_time local_mean_time(h, ra, t)
+    # First, the fractional year (γ) is calculated, in radians
+    def fractional_year
+      days_in_year = Time.days_in_year(@t.year)
+      (2 * Math::PI / days_in_year) * (@t.day_of_year - 1 + ((@t.hour - 12) / 24))
     end
 
-    def fractional_time_to_proper_time(t_in_fractional_hours)
-      minutes = t_in_fractional_hours * 60
-      seconds = (minutes * 60).to_i
+    # From γ, we can estimate the equation of time (in minutes) and the solar declination angle (in radians).
+    def eqtime
+      γ = fractional_year
+      a = 0.001868 * Math.cos(γ)
+      b = 0.032077 * Math.sin(γ)
+      c = 0.014615 * Math.cos(2 * γ)
+      d = 0.040849 * Math.sin(2 * γ)
+      229.18 * (0.000075 + a - b - c - d)
+    end
+
+    # and the solar declination angle (in radians).
+    def decl
+      γ = fractional_year
+      a = 0.399912 * Math.cos(γ)
+      b = 0.070257 * Math.sin(γ)
+      c = 0.006758 * Math.cos(2 * γ)
+      d = 0.000907 * Math.sin(2 * γ)
+      e = 0.002697 * Math.cos(3 * γ)
+      f = 0.00148 * Math.sin (3 * γ)
+      0.006918 - a + b - c + d - e + f
+    end
+
+    # I could make these available if someone wants them
+    # commented out, since they don't return proper time objects
+    # # Next, the true solar time is calculated in the following two equations
+    # # First the time offset is found, in minutes, and then the true solar time, in minutes.
+    # def time_offset
+    #   # eqtime is in minutes
+    #   # longitude is in degrees(positive to the eastof the Prime Meridian)
+    #   # t.offset returns seconds, so we divide that with 60 to get minutes
+    #   eqtime + (4 * @lng) - (@t.offset/60)
+    # end
+
+    # # Don't use this unless you want true solar time
+    # def true_solar_time
+    #   @t.hour * 60 + @t.minute + @time.second/60 + time_offset
+    # end
+
+    # # Uses the true solar time
+    # def solar_hour_angle
+    #   (true_solar_time / 4) - 180
+    # end
+
+    def degrees_to_radians(deg)
+      deg * (Math::PI / 180)
+    end
+
+    def radians_to_degrees(rad)
+      rad * (180 / Math::PI)
+    end
+
+    # For the special case of sunrise or sunset,
+    # the zenith is set to 90.833 (the approximate correction for atmospheric refraction at sunrise and sunset, and the size of the solar disk)
+    # and the hour angle becomes:
+    # returns HA in radians
+    def solve_for_zenith_ha(sunrise_or_sunset : Symbol)
+      zenith = degrees_to_radians 90.833
+      lat_in_radians = degrees_to_radians(@lat)
+      a = Math.cos(zenith)
+      b = Math.cos(lat_in_radians) * Math.cos(decl)
+      c = Math.tan(lat_in_radians) * Math.tan(decl)
+      ha = Math.acos((a/b) - c).abs
+      return (-1 * ha) if sunrise_or_sunset == :sunset
+      ha
+    end
+
+    # longitude and hour angle are in degrees
+    # equation of time is in minutes
+    def calculate_time(what_time : Symbol)
+      ha = solve_for_zenith_ha(what_time)
+      ha_d = radians_to_degrees(ha)
+      ha_d = 0 if what_time == :noon
+      utc_time_in_seconds = ((720 - (4 * (@lng + ha_d)) - eqtime) * 60).to_i
+
+      total_time_shift = (utc_time_in_seconds + @t.offset).to_i
       new_time = @t.at_beginning_of_day
-      new_time.shift(seconds: seconds)
+      new_time.shift(seconds: total_time_shift)
     end
 
     def sunrise
-      calculate_sun_time(true)
+      calculate_time(:sunrise)
+    end
+
+    def solar_noon
+      calculate_time(:noon)
     end
 
     def sunset
-      calculate_sun_time(false)
-    end
-
-    # 1. first calculate the day of the year
-    def day_of_year
-      n1 = (275 * @t.month / 9).floor
-      n2 = ((@t.month + 9) / 12).floor
-      n3 = (1 + ((@t.year - 4 * (@t.year / 4).floor + 2) / 3).floor)
-      return n1 - (n2 * n3) + @t.day - 30
-    end
-
-    # 2. convert the longitude to hour value and calculate an approximate time
-    # pass false for sunset
-    def approx_time(sunrise = true)
-      lngHour = @lng / 15
-      if sunrise
-        day_of_year + ((6 - lngHour) / 24)
-      else
-        day_of_year + ((18 - lngHour) / 24)
-      end
-    end
-
-    # 3. calculate the Sun's mean anomaly
-    def sun_mean_anomaly(t : Float64) : Float64
-      (0.9856 * t) - 3.289
-    end
-
-    def put_in_range(number, lower, upper, adjuster)
-      if number > upper
-        number -= adjuster
-      elsif number < lower
-        number += adjuster
-      else
-        number
-      end
-    end
-
-    # 4. calculate the Sun's true longitude
-    def sun_true_longitude(m)
-      m_in_radians = (Math::PI/180) * m
-      l = m + (1.916 * Math.sin(m_in_radians)) + (0.020 * Math.sin(2 * m_in_radians)) + 282.634
-
-      # NOTE: L potentially needs to be adjusted into the range [0,360) by adding/subtracting 360
-      put_in_range(l, 0, 360, 360)
-    end
-
-    # 5. calculate the Sun's right ascension
-    def sun_right_ascension(l)
-      l_in_radians = (Math::PI/180) * l
-      ra = (180/Math::PI) * Math.atan(0.91764 * Math.tan(l_in_radians))
-
-      # 5b. right ascension value needs to be in the same quadrant as L
-      l_quadrant = (l/90).floor * 90
-      ra_quadrant = (ra/90).floor * 90
-      ra = ra + (l_quadrant - ra_quadrant)
-
-      # NOTE: RA potentially needs to be adjusted into the range [0,360) by adding/subtracting 360
-      ra = put_in_range(ra, 0, 360, 360)
-
-      # 5c. right ascension value needs to be converted into hours
-      ra/15
-    end
-
-    # 6. calculate the Sun's declination
-    # 7a. calculate the Sun's local hour angle
-    def sun_local_hour_angle(l, zenith = :official)
-      case zenith
-      when :official
-        z = 1.58534074
-      when :civil
-        z = 1.67552
-      when :nautical
-        z = 1.78024
-      when :astronomical
-        z = 1.88496
-      else
-        z = 1.58534074
-      end
-
-      l_in_radians = (Math::PI/180) * l
-      sinDec = 0.39782 * Math.sin(l_in_radians)
-      cosDec = Math.cos(Math.asin(sinDec))
-
-      lat_in_radians = (Math::PI/180) * @lat
-
-      cosH = (Math.cos(z) - (sinDec * Math.sin(lat_in_radians))) / (cosDec * Math.cos(lat_in_radians))
-
-      raise "the sun never rises on this location (on the specified date)" if cosH > 1
-      raise "the sun never sets on this location (on the specified date)" if cosH < -1
-      cosH
-    end
-
-    # 7b. finish calculating H and convert into hours
-    def calculate_h(cosH, sunrise = true)
-      h = 0
-      if sunrise
-        h = 360 - (Math.acos(cosH) * (180/Math::PI))
-      else
-        h = Math.acos(cosH) * (180/Math::PI)
-      end
-      # convert it to hours
-      h/15
-    end
-
-    # 8. calculate local mean time of rising/setting
-    def local_mean_time(h, ra, t)
-      t = h + ra - (0.06571 * t) - 6.622
-      lngHour = @lng / 15
-      t = (t - lngHour)
-      t = put_in_range(t, 0, 24, 24)
-      t + (@t.offset / 3600)
+      calculate_time(:sunset)
     end
   end
 end

@@ -30,9 +30,10 @@ s.sunset
 # 2020-05-22 18:39:43.0 +05:30 Local
 ```
 
-## Development
+## TODO
 
-TODO: Write development instructions here
+- [ ] Implement the Atmospheric Refraction Effect calculation
+- [ ] Uncomment true_solar_time after converting it to proper time object
 
 ## Contributing
 
