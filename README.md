@@ -1,6 +1,6 @@
 # suntime
 
-Crystal library for calculating sunrise and sunset times. Uses the algorithm from <http://www.edwilliams.org/sunrise_sunset_algorithm.htm>.
+Crystal library for calculating sunrise and sunset times. Uses the algorithm from <https://www.esrl.noaa.gov/gmd/grad/solcalc/solareqns.PDF>
 
 ## Installation
 
@@ -29,6 +29,8 @@ s.sunrise
 s.sunset
 # 2020-05-22 18:39:43.0 +05:30 Local
 ```
+
+You can pass in a different time. The date is used for calculating the sunrise/sunset, and the timezone is used for return formatting.
 
 ## TODO
 

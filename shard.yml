@@ -1,5 +1,5 @@
 name: suntime
-version: 0.1.0
+version: 1.0.0
 description: A crystal shard to calculate sunrise and sunset times across the world.
 
 authors:

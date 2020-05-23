@@ -1,10 +1,7 @@
 # TODO: Write documentation for `Suntime`
 module Suntime
-  VERSION = "0.1.0"
+  VERSION = "1.0.0"
 
-  # Currently based on http://www.edwilliams.org/sunrise_sunset_algorithm.htm
-  # TODO: Switch to https://www.esrl.noaa.gov/gmd/grad/solcalc/solareqns.PDF
-  # to use radians directly
   class Suntime
     @lng : Float64
     @lat : Float64
