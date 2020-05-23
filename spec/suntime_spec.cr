@@ -10,14 +10,14 @@ describe Suntime do
 
     # TODO: These are stupid tests, figure out how to use epsilon for float tests in Crystal
     t.day_of_year.should eq(176)
-    t.approx_time.should eq(176.45638888888888)
-    t.approx_time(false).should eq(176.95638888888888)
-    t.sun_mean_anomaly(176.456).should eq(170.6260336)
-    t.sun_true_longitude(170.6260336).should eq(93.56567911851744)
-    t.sun_right_ascension(93.56567911851744).should eq(6.2589844084367705)
-    t.sun_local_hour_angle(93.56567911851744).should eq(-0.39570523787054585)
-    t.calculate_h(-0.39570523787054585).should eq(16.44600232000648)
-    t.local_mean_time(16.44600232000648, 6.2589844084367705, 176.456).should eq(5.441396301776585)
+    t.approx_time.should be_close(176.45, 0.01)
+    t.approx_time(false).should be_close(176.95, 0.01)
+    t.sun_mean_anomaly(176.456).should be_close(170.62, 0.01)
+    t.sun_true_longitude(170.62).should be_close(93.56, 0.01)
+    t.sun_right_ascension(93.56).should be_close(6.258, 0.01)
+    t.sun_local_hour_angle(93.56).should be_close(-0.395, 0.01)
+    t.calculate_h(-0.3957).should be_close(16.446, 0.01)
+    t.local_mean_time(16.446, 6.258, 176.456).should be_close(5.441, 0.01)
 
     a = t.sunrise
     a.year.should eq(1990)
