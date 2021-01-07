@@ -5,6 +5,6 @@ description: A crystal shard to calculate sunrise and sunset times across the wo
 authors:
   - Nemo <me@captnemo.in>
 
-crystal: 0.34.0
+crystal: 0.35.1
 
 license: MIT
